@@ -22,6 +22,7 @@ build = ["pyinstaller>=6.6"]
 [project.scripts]
 aidetect = "aidetect.cli:main"
 aidetect-calibrate = "aidetect.calibrate:main"
+aidetect-benchmark = "aidetect.benchmark:main"
 
 [tool.setuptools.packages.find]
 include = ["aidetect*"]

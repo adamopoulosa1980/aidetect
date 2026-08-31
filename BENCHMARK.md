@@ -38,6 +38,39 @@ Numbers that came out of building the tool, each reproducible from the repositor
 | Can a threshold be transferred between model pairs from one anchor text? | **No.** Across five texts the ratio between Falcon and Qwen2.5-0.5B scores ranged 0.965 to 1.573, a 63% spread. Thresholds derived from different anchors got 2/5 to 4/5 verdicts wrong. |
 | Does this implementation match the reference? | Verdict agrees on the reference's published sample; the score is **3.4% out** (0.73061407 here, 0.75661373 published). Unexplained. The sample string was reconstructed from wrapped documentation rather than copied byte for byte, and whitespace sensitivity above is large enough to account for it. |
 
+## Running one
+
+`aidetect-benchmark` takes a corpus laid out by condition and prints a table:
+
+```
+corpus/
+  original-ai/     human/*.docx   ai/*.docx
+  paraphrased/     human/*.docx   ai/*.docx
+  non-native/      human/*.docx   ai/*.docx
+```
+
+```
+aidetect-benchmark corpus/ --max-fpr 0.01 --output results.md
+```
+
+Each condition is scored and reported separately, with the threshold chosen
+under the given false-positive budget. It names the condition with the most
+false positives and the weakest separation, because a pooled figure would hide
+precisely those.
+
+### One trap, found while testing the harness
+
+The harness was first exercised on a corpus where the "AI" side was prose
+written by hand to *look* formulaic. It returned **AUROC 0.000** — perfectly
+inverted. The harness was right: the text labelled AI was human-written, so the
+label was false, and a detector that ranked it as human was correct to.
+
+Text that imitates machine writing is not machine writing. Generate the AI side
+with actual models, or the benchmark measures nothing but the label.
+
+The same run reproduced a separate finding: Qwen2.5-0.5B does not discriminate
+usefully. Small pairs are for testing that a pipeline runs, not for verdicts.
+
 ## What a real benchmark needs
 
 Nothing below has been run.

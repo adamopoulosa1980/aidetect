@@ -343,7 +343,15 @@ verdict = score_text(load_text("report.pdf"), "features", model="detector.pkl")
 print(verdict.label, verdict.score)   # 'AI-generated' 0.87
 ```
 
-See [CHANGELOG.md](CHANGELOG.md) for release history.
+Benchmarking, once you have labelled documents:
+
+```
+aidetect-benchmark corpus/ --max-fpr 0.01 --output results.md
+```
+
+See [BENCHMARK.md](BENCHMARK.md) for the layout it expects, what has actually
+been measured, and one trap worth avoiding. [CHANGELOG.md](CHANGELOG.md) has the
+release history.
 
 ## Credits
 
