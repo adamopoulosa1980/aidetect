@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 220" width="860" height="220" role="img" aria-label="aidetect - AI text detection for essays, reports and articles">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 220" width="860" height="220" role="img" aria-label="aidetect - AI writing forensics: detect, explain, compare, calibrate">
   <title>aidetect</title>
 
   <defs>
@@ -27,7 +27,7 @@
 
   <text x="180" y="104" font-family="Segoe UI, Helvetica, Arial, sans-serif"
         font-size="17" fill="#8a8f98">
-    AI-text detection for essays, reports and articles — English and Greek
+    Detect · Explain · Compare · Calibrate — AI writing forensics, English and Greek
   </text>
 
   <!-- The score scale, which is the thing the tool actually reports. -->

@@ -4,18 +4,32 @@
 
 <p align="center">
   <a href="#install"><img src="https://img.shields.io/badge/python-3.10%2B-4285f4" alt="Python 3.10+"></a>
-  <img src="https://img.shields.io/badge/tests-108%20passing-3aa675" alt="108 tests passing">
+  <img src="https://img.shields.io/badge/tests-109%20passing-3aa675" alt="109 tests passing">
   <img src="https://img.shields.io/badge/languages-English%20%C2%B7%20Greek-8a8f98" alt="English and Greek">
   <img src="https://img.shields.io/badge/platform-Windows%20standalone-8a8f98" alt="Windows standalone">
 </p>
 
-AI-generated text detection toolkit for essays, reports and articles. Two
-complementary detectors plus an evaluation harness, in English and Greek.
+**AI writing forensics for essays, reports and articles — English and Greek.**
 
-Built to answer a narrow question honestly: does a piece of writing read as
-machine-generated to a detector, and which passages are responsible? It is a
-diagnostic, not a verdict — see [Known limitations](#known-limitations-by-design-of-the-problem-not-the-code),
-which are substantial and stated plainly.
+**Detect** how machine-like a piece of writing reads · **Explain** which
+passages are responsible and why · **Compare** against writing you know people
+wrote · **Calibrate** a threshold on your own material rather than someone
+else's benchmark.
+
+Everything runs on your machine. Documents are never uploaded anywhere; only
+model weights are downloaded, once. The writing indicators need no model, no
+network and no GPU at all.
+
+A single "87% AI" number is not worth much, and the research says so. What is
+worth something is *this passage has very even sentence lengths and repeats
+itself, which reads as formulaic* — an observation you can act on, and one that
+holds whichever detector someone else happens to run.
+
+It is a diagnostic, not a verdict. The
+[limitations](#known-limitations-by-design-of-the-problem-not-the-code) are
+substantial and stated plainly, and [BENCHMARK.md](BENCHMARK.md) records what
+has actually been measured — including two of five human-written samples being
+wrongly flagged.
 
 ## How it works
 
@@ -66,7 +80,7 @@ it. Calibrate on your own writing before reading anything into a verdict.
 
 **1. Binoculars (zero-shot, GPU)** — `aidetect/binoculars.py`
 
-No training data needed. Scores text with a base/instruct model pair; AI text scores *low* (perplexity/cross-perplexity ratio). Falcon-7B pair fits in fp16/bf16 on a single 24GB GPU (your 3090). For the 5090, a Qwen2.5-7B pair also works and is faster.
+No training data needed. Scores text with a base/instruct model pair; AI text scores *low* (perplexity/cross-perplexity ratio). The Falcon-7B pair fits in fp16/bf16 on a single 24GB card. A Qwen2.5-7B pair also works and is faster on newer hardware.
 
 ```python
 from aidetect.binoculars import Binoculars
@@ -99,7 +113,7 @@ Convention: higher score = more likely AI. For Binoculars, negate the raw score 
 
 ## Recommended workflow
 
-1. Assemble a domain-matched eval set: real human text from your target domain + AI text from several generators (generate locally on ZEUS via LM Studio/vLLM: Qwen, Llama, plus GPT-4o/Claude via API).
+1. Assemble a domain-matched eval set: real human text from your target domain, plus AI text from several generators. Local models via LM Studio or vLLM, and hosted ones through their APIs, so the set is not tuned to one generator.
 2. Run Binoculars as the baseline; record AUROC and FPR@threshold.
 3. Train FeatureDetector on the same data; compare.
 4. Stress-test: paraphrase the AI texts (e.g. with DIPPER or any local model prompted to rewrite) and re-measure. Expect significant degradation — this is the known weakness of all current detectors.
@@ -126,7 +140,7 @@ Convention: higher score = more likely AI. For Binoculars, negate the raw score 
 ```
 pip install -r requirements.txt            # CPU parts (sklearn, numpy, docx, pdf)
 pip install torch transformers accelerate  # for Binoculars (GPU)
-pytest                                     # 28 tests, CPU-only
+pytest                                     # 109 tests, CPU-only
 ```
 
 ## Desktop app / standalone executable
@@ -140,7 +154,7 @@ Builds a Windows `.exe` that runs on machines with **no Python installed**.
 
 | | Full (default) | Lite (`-Lite`) |
 |---|---|---|
-| Size | ~4.4 GB with CUDA torch, one folder | ~67 MB, single file |
+| Size | ~4.4 GB with CUDA torch, one folder | 68 MB, single file |
 | Binoculars (zero-shot score) | yes | no |
 | Writing indicators | yes | **yes** |
 | Trained classifier | with your `.pkl` | with your `.pkl` |
