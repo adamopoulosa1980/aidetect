@@ -12,18 +12,19 @@ The difference matters, so it is worth stating:
     one small model on the AI side    the models people actually use
     one condition                     paraphrasing, non-native writers,
                                       Greek, several registers
-    40 documents per class            hundreds per class
+    20 documents per class            hundreds per class
     abstracts, ~170 words             whole documents
     shows the harness runs            supports a claim
 
 Human side: abstracts submitted to arXiv during 2010, years before any public
 LLM, so authorship is not in question.
 
-AI side: abstracts generated from the same titles by Qwen2.5-1.5B-Instruct.
+AI side: abstracts generated from the same titles by Qwen2.5-0.5B-Instruct.
 Deliberately a different model family from the Falcon pair used for detection,
 since scoring a model's output with its own relatives would flatter the result.
-A 1.5B model also writes more predictably than the large ones people actually
-use, which biases any result here optimistic.
+A 0.5B model also writes far more predictably than the large ones people
+actually use, which biases any result here optimistic - one more reason this is
+an example and not a measurement.
 
 Lengths are matched across the two sides, so nothing can be separated on length
 alone.
@@ -41,7 +42,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 NS = {"a": "http://www.w3.org/2005/Atom"}
 MIN_WORDS, MAX_WORDS = 120, 260
-WANTED = 40
+WANTED = 20
 CATEGORIES = ["cs.CL", "cs.LG", "math.ST", "physics.optics", "q-bio.NC"]
 
 OUT = Path.home() / "arxiv2010-corpus"
@@ -121,7 +122,7 @@ def main() -> None:
     for i, (_title, abstract) in enumerate(papers):
         (human_dir / f"{i:03d}.txt").write_text(abstract, encoding="utf-8")
 
-    name = "Qwen/Qwen2.5-1.5B-Instruct"
+    name = "Qwen/Qwen2.5-0.5B-Instruct"
     tok = AutoTokenizer.from_pretrained(name)
     model = AutoModelForCausalLM.from_pretrained(name, dtype=torch.float32).eval()
 
