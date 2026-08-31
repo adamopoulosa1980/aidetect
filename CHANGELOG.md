@@ -5,6 +5,52 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-09-01
+
+### Added
+
+- **`aidetect-benchmark`** — evaluates detectors against labelled corpora and
+  prints a table. Conditions are scored and reported **separately, never
+  pooled**: a single headline AUROC hides exactly the cases that break a
+  detector, which are paraphrased output, non-native writers and formal
+  registers. The output names the condition with the most false positives and
+  the weakest separation, and warns below 30 documents per class where an FPR
+  estimate is too noisy to publish.
+- **`--stylometry`** — writing indicators with no model, no download, no GPU and
+  no verdict about authorship. This is what makes the 68 MB lite build useful on
+  its own; previously the indicators were only produced as a side effect of
+  scoring, which needed a detector.
+- **`examples/build_example_corpus.py`** — assembles a corpus anyone can
+  regenerate: 40 arXiv abstracts from 2010 against 40 generated from the same
+  titles, lengths matched. It is an **example corpus, not a validation corpus**,
+  and BENCHMARK.md says so at length. Its numbers illustrate the output format
+  and are not evidence about detection quality.
+- **BENCHMARK.md** — states plainly that no benchmark exists, then records what
+  has actually been measured, including two of five human-written samples being
+  wrongly flagged, and what a real evaluation would need.
+
+### Changed
+
+- The README leads with Detect, Explain, Compare, Calibrate rather than with
+  detection alone, and states that documents never leave the machine.
+- Console output is checked for non-ASCII by a test that parses the source
+  rather than grepping it, after an em-dash rendered as a replacement character
+  in the message a lite-build user is most likely to see.
+
+### Fixed
+
+- `pip` and `setuptools` upgraded past PYSEC-2026-3721 and PYSEC-2026-3447.
+  `setuptools` is bundled into the executable, so the vulnerable version was
+  being shipped to users rather than merely sitting in a build environment.
+
+### Notes
+
+- Exercising the benchmark harness caught a trap worth recording. The first
+  corpus had an "AI" side written by hand to look formulaic, and the harness
+  returned AUROC 0.000. The harness was right: that text was human-written, the
+  label was false, and a detector ranking it as human was correct to. Text that
+  imitates machine writing is not machine writing.
+
 ## [1.4.0] - 2026-08-31
 
 ### Fixed

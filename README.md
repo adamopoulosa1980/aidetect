@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#install"><img src="https://img.shields.io/badge/python-3.10%2B-4285f4" alt="Python 3.10+"></a>
-  <img src="https://img.shields.io/badge/tests-109%20passing-3aa675" alt="109 tests passing">
+  <img src="https://img.shields.io/badge/tests-117%20passing-3aa675" alt="117 tests passing">
   <img src="https://img.shields.io/badge/languages-English%20%C2%B7%20Greek-8a8f98" alt="English and Greek">
   <img src="https://img.shields.io/badge/platform-Windows%20standalone-8a8f98" alt="Windows standalone">
 </p>
@@ -140,7 +140,7 @@ Convention: higher score = more likely AI. For Binoculars, negate the raw score 
 ```
 pip install -r requirements.txt            # CPU parts (sklearn, numpy, docx, pdf)
 pip install torch transformers accelerate  # for Binoculars (GPU)
-pytest                                     # 109 tests, CPU-only
+pytest                                     # 117 tests, CPU-only
 ```
 
 ## Desktop app / standalone executable
@@ -250,6 +250,7 @@ aidetect DOCUMENT                                   # .txt .md .docx .pdf
 aidetect DOCUMENT --save-md                         # also write DOCUMENT.md
 aidetect DOCUMENT --sections                        # score every section, not just page 1
 aidetect DOCUMENT --sections --mode low-fpr         # lenient threshold
+aidetect DOCUMENT --stylometry                      # indicators only, no model
 aidetect --gui                                      # graphical interface
 aidetect DOCUMENT --detector features --model m.pkl # CPU stylometric
 echo "some text" | aidetect                         # stdin
@@ -349,8 +350,13 @@ Benchmarking, once you have labelled documents:
 aidetect-benchmark corpus/ --max-fpr 0.01 --output results.md
 ```
 
-See [BENCHMARK.md](BENCHMARK.md) for the layout it expects, what has actually
-been measured, and one trap worth avoiding. [CHANGELOG.md](CHANGELOG.md) has the
+To see the output without assembling a corpus first,
+`examples/build_example_corpus.py` regenerates a small one from public data.
+It is an **example** corpus, not a validation corpus, and its numbers show the
+output format rather than saying anything about detection quality.
+
+See [BENCHMARK.md](BENCHMARK.md) for the layout, what has actually been
+measured, and one trap worth avoiding. [CHANGELOG.md](CHANGELOG.md) has the
 release history.
 
 ## Credits

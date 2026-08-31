@@ -71,6 +71,27 @@ with actual models, or the benchmark measures nothing but the label.
 The same run reproduced a separate finding: Qwen2.5-0.5B does not discriminate
 usefully. Small pairs are for testing that a pipeline runs, not for verdicts.
 
+## The example corpus is not a validation corpus
+
+`examples/build_example_corpus.py` assembles a small corpus anyone can
+regenerate: 40 abstracts submitted to arXiv during 2010 on the human side, and
+40 generated from the same titles by Qwen2.5-1.5B-Instruct on the other, with
+lengths matched so nothing separates on length alone.
+
+It exists so the harness can be run end to end and its output seen. **Whatever
+numbers it produces are an illustration of the output format, not evidence about
+detection quality**, and should never be quoted as a result. The reasons are
+structural, not fixable by running it for longer:
+
+- the AI side is a 1.5B model, which writes far more predictably than the models
+  people actually use, so any separation it shows is optimistic
+- one condition, where the conditions that matter are paraphrasing, non-native
+  writers, Greek, and several registers
+- 40 documents per class, where an FPR estimate needs hundreds
+- abstracts of about 170 words, not whole documents
+
+A validation corpus differs on every one of those lines.
+
 ## What a real benchmark needs
 
 Nothing below has been run.
