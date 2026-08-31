@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 220" width="860" height="220" role="img" aria-label="aidetect - AI text detection for essays, reports and articles">
+  <title>aidetect</title>
+
+  <defs>
+    <linearGradient id="scale" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#e8734a"/>
+      <stop offset="45%"  stop-color="#e8b04a"/>
+      <stop offset="100%" stop-color="#3aa675"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Two lenses: the observer and performer models the method contrasts.
+       Their overlap is where the score comes from. -->
+  <g transform="translate(64,74)" fill="none" stroke-width="3">
+    <circle cx="0"  cy="0" r="34" stroke="#4285f4" opacity="0.9"/>
+    <circle cx="40" cy="0" r="34" stroke="#f9ab00" opacity="0.9"/>
+    <path d="M20,-27.5 A34,34 0 0 1 20,27.5 A34,34 0 0 1 20,-27.5 Z"
+          fill="#8ab4f8" fill-opacity="0.28" stroke="none"/>
+    <circle cx="0"  cy="0" r="5" fill="#4285f4" stroke="none"/>
+    <circle cx="40" cy="0" r="5" fill="#f9ab00" stroke="none"/>
+  </g>
+
+  <text x="176" y="70" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="62" font-weight="700" letter-spacing="-1.5">
+    <tspan fill="#4285f4">ai</tspan><tspan fill="#8a8f98">detect</tspan>
+  </text>
+
+  <text x="180" y="104" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="17" fill="#8a8f98">
+    AI-text detection for essays, reports and articles — English and Greek
+  </text>
+
+  <!-- The score scale, which is the thing the tool actually reports. -->
+  <g transform="translate(180,150)">
+    <rect x="0" y="0" width="600" height="7" rx="3.5" fill="url(#scale)" opacity="0.85"/>
+
+    <g stroke="#8a8f98" stroke-width="1.5">
+      <line x1="192" y1="-7" x2="192" y2="14"/>
+      <line x1="300" y1="-7" x2="300" y2="14"/>
+    </g>
+
+    <text x="192" y="32" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+          font-size="12" fill="#8a8f98">0.8536</text>
+    <text x="300" y="32" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+          font-size="12" fill="#8a8f98">0.9015</text>
+
+    <text x="0" y="-14" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+          font-size="12" fill="#8a8f98">machine-like</text>
+    <text x="600" y="-14" text-anchor="end" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+          font-size="12" fill="#8a8f98">human-like</text>
+
+    <text x="246" y="52" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+          font-size="11" fill="#8a8f98" font-style="italic">grey zone</text>
+  </g>
+</svg>

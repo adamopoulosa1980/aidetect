@@ -1,0 +1,29 @@
+verdicts
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.env
+
+# PyInstaller
+build/
+dist/
+*.manifest
+*.log
+
+# Local models and calibrations, derived from whatever you ran this against
+# and meaningless on another machine.
+*.pkl
+thresholds.json
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
