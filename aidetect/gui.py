@@ -174,6 +174,8 @@ class App(ttk.Frame):
 
         self._results: queue.Queue = queue.Queue()
         self._busy = False
+        # Kept so the analysis can be exported after the fact.
+        self._verdict = None
 
         self.path_var = tk.StringVar()
         self.status_var = tk.StringVar(
@@ -216,8 +218,15 @@ class App(ttk.Frame):
         self.save_md_button = ttk.Button(actions, text="Save as .md", command=self.save_markdown)
         self.save_md_button.grid(row=0, column=1, padx=(8, 0))
         self.save_md_button.state(["disabled"])
-        ttk.Button(actions, text="Clear", command=self.clear).grid(row=0, column=2, padx=(8, 0))
-        ttk.Button(actions, text="Help", command=self.show_help).grid(row=0, column=3, padx=(8, 0))
+        # Exports the analysis, not the document -- 'Save as .md' above converts
+        # the source file, which is a different thing people confuse them for.
+        self.export_button = ttk.Button(
+            actions, text="Export analysis", command=self.export_analysis
+        )
+        self.export_button.grid(row=0, column=2, padx=(8, 0))
+        self.export_button.state(["disabled"])
+        ttk.Button(actions, text="Clear", command=self.clear).grid(row=0, column=3, padx=(8, 0))
+        ttk.Button(actions, text="Help", command=self.show_help).grid(row=0, column=4, padx=(8, 0))
 
         row += 1
         self.headline = ttk.Label(self, text="", font=("", 11, "bold"), wraplength=640)
@@ -449,6 +458,34 @@ class App(ttk.Frame):
             return
         self.status_var.set(f"Markdown written to {written}")
 
+    def export_analysis(self) -> None:
+        """Write the section analysis to a Markdown file."""
+        verdict = self._verdict
+        if verdict is None or not hasattr(verdict, "to_markdown"):
+            messagebox.showinfo(
+                "Nothing to export",
+                "Analyse a document with 'Score section by section' ticked first.",
+            )
+            return
+        source = self.path_var.get() or None
+        initial = (
+            f"{Path(source).stem}.analysis.md" if source else "analysis.md"
+        )
+        target = filedialog.asksaveasfilename(
+            title="Export analysis as",
+            defaultextension=".md",
+            initialfile=initial,
+            filetypes=[("Markdown", "*.md"), ("All files", "*.*")],
+        )
+        if not target:
+            return
+        try:
+            Path(target).write_text(verdict.to_markdown(source), encoding="utf-8")
+        except OSError as e:
+            messagebox.showerror("Could not write analysis", str(e))
+            return
+        self.status_var.set(f"Analysis written to {target}")
+
     def show_help(self) -> None:
         """A scrollable help window.
 
@@ -485,6 +522,8 @@ class App(ttk.Frame):
         self._set_headline("")
         self._show_report("")
         self.save_md_button.state(["disabled"])
+        self._verdict = None
+        self.export_button.state(["disabled"])
 
     def run(self) -> None:
         if self._busy:
@@ -563,6 +602,12 @@ class App(ttk.Frame):
                     messagebox.showerror("Detection failed", payload)
                 else:
                     headline, detail, verdict = payload
+                    self._verdict = verdict
+                    # Only a section-by-section run has something to export;
+                    # a single whole-document score is one number.
+                    self.export_button.state(
+                        ["!disabled"] if hasattr(verdict, "to_markdown") else ["disabled"]
+                    )
                     flagged = getattr(verdict, "flagged", None)
                     is_flagged = bool(flagged) if flagged is not None else verdict.is_ai
                     self._set_headline(headline, flagged=is_flagged)

@@ -248,6 +248,21 @@ def describe_device() -> str:
 # --------------------------------------------------------------------------
 
 
+def _quote(text: str) -> list[str]:
+    """Section text as blockquote lines, with blank lines kept quoted.
+
+    An unquoted blank line ends a Markdown blockquote, which would leave the
+    tail of a multi-paragraph section rendering as body text.
+    """
+    flat = [" ".join(line.split()) for line in text.splitlines()]
+    return [line if line else "" for line in flat] or [""]
+
+
+def _cell(text: str) -> str:
+    """Table-cell safe: an unescaped pipe would split the row."""
+    return text.replace("|", "\\|")
+
+
 @dataclass
 class Section:
     index: int
@@ -307,6 +322,116 @@ class DocumentVerdict:
         """
         pick = min if self.detector == "binoculars" else max
         return pick(self.sections, key=lambda s: s.score)
+
+    def to_markdown(self, source: str | None = None) -> str:
+        """The section analysis as a Markdown report.
+
+        Written for someone reading it later without the terminal in front of
+        them, so it states the direction of the threshold rather than assuming
+        it: which way is AI is the single detail people get backwards, and a
+        report that outlives its session has to carry it.
+
+        Flagged sections get their full text, because those are the ones you go
+        and read. Everything else is a one-line row -- a 600-section document
+        would otherwise produce a file nobody opens.
+        """
+        from datetime import datetime
+
+        stylometry = self.detector == "stylometry"
+        total = len(self.sections)
+        lines = [
+            "# aidetect section analysis",
+            "",
+            f"**{self.headline}**",
+            "",
+            "| | |",
+            "|---|---|",
+            f"| Detector | `{self.detector}` |",
+        ]
+        if source:
+            lines.append(f"| Source | `{source}` |")
+        lines.append(f"| Sections | {total} |")
+        if not stylometry:
+            lines.append(f"| Threshold | {self.threshold:.4f} |")
+            lines.append(f"| Mean score | {self.mean_score:.4f} |")
+            lines.append(f"| Flagged | {len(self.flagged)} of {total} |")
+        if self.device:
+            lines.append(f"| Device | `{self.device}` |")
+        lines.append(f"| Generated | {datetime.now().strftime('%Y-%m-%d %H:%M')} |")
+        lines.append("")
+
+        if not stylometry:
+            direction = (
+                "**below** the threshold"
+                if self.detector == "binoculars"
+                else "**above** the threshold"
+            )
+            lines += [
+                f"A section is flagged when it scores {direction} "
+                f"({self.threshold:.4f}). "
+                + (
+                    "Binoculars scores machine-written text *low*."
+                    if self.detector == "binoculars"
+                    else "FeatureDetector returns P(AI), so machine-written text scores *high*."
+                ),
+                "",
+                "> The count of flagged passages is what to act on. The mean across a "
+                "whole document rarely tells you anything -- a few machine-written "
+                "paragraphs inside a long human one barely move it.",
+                "",
+                "This is a diagnostic, not a verdict. Read the passages below before "
+                "drawing a conclusion from them.",
+                "",
+            ]
+
+        risky = self.flagged if not stylometry else [s for s in self.sections if s.notes]
+        heading = "Flagged sections" if not stylometry else "Sections worth looking at"
+        lines.append(f"## {heading}")
+        lines.append("")
+        if not risky:
+            lines.append("None.")
+            lines.append("")
+        for section in risky:
+            title = f"### Section {section.index + 1}"
+            if not stylometry:
+                title += f" -- score {section.score:.4f}"
+            lines += [title, ""]
+            lines += [f"> {line}" for line in _quote(section.text)]
+            lines.append("")
+            if section.style is not None:
+                lines += [f"`{section.style}`", ""]
+            lines += [f"- {note}" for note in section.notes]
+            if section.notes:
+                lines.append("")
+
+        lines += ["## All sections", "", "| # | Score | Flagged | Opening |", "|---:|---:|:---:|---|"]
+        for section in self.sections:
+            score = "-" if stylometry else f"{section.score:.4f}"
+            mark = "**yes**" if section.is_ai and not stylometry else ""
+            lines.append(
+                f"| {section.index + 1} | {score} | {mark} | {_cell(section.preview)} |"
+            )
+        lines.append("")
+
+        if self.detector == "binoculars":
+            lines += [
+                "## Credit",
+                "",
+                "The zero-shot detector implements the Binoculars method:",
+                "",
+                "> Abhimanyu Hans, Avi Schwarzschild, Valeriia Cherepanova, Hamid "
+                "Kazemi, Aniruddha Saha, Micah Goldblum, Jonas Geiping, Tom "
+                "Goldstein. **Spotting LLMs With Binoculars: Zero-Shot Detection of "
+                "Machine-Generated Text.** ICML 2024, PMLR 235. "
+                "[arXiv:2401.12070](https://arxiv.org/abs/2401.12070)",
+                "",
+                "Reference implementation: "
+                "[github.com/ahans30/Binoculars](https://github.com/ahans30/Binoculars), "
+                "BSD 3-Clause. The threshold above is that implementation's published "
+                "constant, reproduced unchanged.",
+                "",
+            ]
+        return "\n".join(lines)
 
     def __str__(self) -> str:
         n, total = len(self.flagged), len(self.sections)

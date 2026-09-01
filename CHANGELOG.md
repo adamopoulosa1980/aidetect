@@ -5,6 +5,36 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-09-01
+
+### Added
+
+- **`--export-md`** writes the section analysis to a Markdown file, and an
+  **Export analysis** button does the same in the GUI. A 600-section document is
+  unreadable as terminal scrollback and gone when the window closes; this is the
+  form you can keep, diff, or hand to someone else.
+
+  The report states **which direction of the threshold means AI**, because that
+  is the detail people get backwards and a file outlives the session that
+  explains it. It carries the same warning the code does -- that the count of
+  flagged passages is what to act on and the mean says little -- and it credits
+  the Binoculars authors, since a report naming the method should not drop the
+  attribution.
+
+  Flagged sections are reproduced in full, because those are the ones you go and
+  read. Every other section is one table row, so a 600-section document produces
+  a file someone will actually open. Pipes in the text are escaped in table cells
+  and left alone in blockquotes.
+
+  `--export-md` implies `--sections`: a per-section report of a single scored
+  window would misrepresent the document. With no path it derives one --
+  `report.docx` becomes `report.analysis.md` beside the original; given a
+  directory it writes inside it.
+
+  This is distinct from the existing `--save-md`, which converts the *source
+  document* to Markdown. The GUI labels them "Save as .md" and "Export analysis"
+  for the same reason.
+
 ## [1.7.0] - 2026-09-01
 
 ### Fixed

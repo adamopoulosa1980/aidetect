@@ -250,6 +250,7 @@ invoke `pyinstaller --clean --noconfirm aidetect.spec` yourself.
 aidetect DOCUMENT                                   # .txt .md .docx .pdf
 aidetect DOCUMENT --save-md                         # also write DOCUMENT.md
 aidetect DOCUMENT --sections                        # score every section, not just page 1
+aidetect DOCUMENT --export-md                       # write DOCUMENT.analysis.md
 aidetect DOCUMENT --sections --mode low-fpr         # lenient threshold
 aidetect DOCUMENT --stylometry                      # indicators only, no model
 aidetect --gui                                      # graphical interface
@@ -294,6 +295,10 @@ perplexity, and `features.dash_rate` counts " - ", which is exactly a Markdown
 bullet — converting first would corrupt the stylometric features on every
 document. `--save-md` writes a structured Markdown copy for reading and keeping,
 separate from the flat text that gets scored.
+
+**Two different Markdown outputs, easily confused.** `--save-md` converts the *source document* to Markdown. `--export-md` writes the *analysis* — the per-section scores, which passages were flagged and why — to `DOCUMENT.analysis.md`. The GUI calls them "Save as .md" and "Export analysis".
+
+The report records which direction of the threshold means AI, because a file outlives the session that would have explained it. Flagged sections appear in full; the rest are one row each, so a 600-section document stays readable. `--export-md` implies `--sections`.
 
 
 ### Operating modes and what actually gets scored

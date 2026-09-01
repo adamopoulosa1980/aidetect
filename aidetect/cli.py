@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from .models import PAIR_KEYS, resolve
 from .readers import SUPPORTED_EXTENSIONS
@@ -29,6 +30,25 @@ CONTEXT_WORDS = 380
 
 def _frozen() -> bool:
     return getattr(sys, "frozen", False)
+
+
+def _export_path(requested: str, source: str | None) -> Path:
+    """Where the report goes.
+
+    An empty string means the flag was passed without a value, so the name is
+    derived from the document -- report.docx becomes report.analysis.md, beside
+    the original. A directory is treated as one rather than overwritten.
+    """
+    if requested:
+        target = Path(requested)
+        if target.is_dir():
+            stem = Path(source).stem if source else "analysis"
+            return target / f"{stem}.analysis.md"
+        return target
+    if source:
+        src = Path(source)
+        return src.with_name(f"{src.stem}.analysis.md")
+    return Path("analysis.md")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -72,6 +92,15 @@ def main(argv: list[str] | None = None) -> int:
         const="",
         metavar="PATH",
         help="also write the document's Markdown rendering; defaults to beside the source",
+    )
+    p.add_argument(
+        "--export-md",
+        nargs="?",
+        const="",
+        metavar="PATH",
+        dest="export_md",
+        help="write the section analysis to a Markdown file; defaults to "
+        "<document>.analysis.md, or analysis.md for stdin. Implies --sections",
     )
     p.add_argument(
         "--stylometry",
@@ -119,6 +148,11 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
 
+    # The report is section by section, so scoring only the first window would
+    # produce a one-row file that misrepresents the document.
+    if args.export_md is not None:
+        args.sections = True
+
     if args.save_md is not None and (not args.file or args.file == "-"):
         p.error("--save-md needs a document to convert; stdin has no source file")
 
@@ -159,11 +193,26 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
 
+    def _export(verdict) -> int:
+        """Write the Markdown report, if one was asked for."""
+        if args.export_md is None:
+            return 0
+        source = args.file if args.file and args.file != "-" else None
+        target = _export_path(args.export_md, source)
+        try:
+            target.write_text(verdict.to_markdown(source), encoding="utf-8")
+        except OSError as e:
+            print(f"aidetect: could not write report: {e}", file=sys.stderr)
+            return 1
+        print(f"analysis written to {target}", file=sys.stderr)
+        return 0
+
     if args.stylometry:
         from .scoring import describe_document
 
-        print(describe_document(text))
-        return 0
+        verdict = describe_document(text)
+        print(verdict)
+        return _export(verdict)
 
     scorer = score_document if args.sections else score_text
     try:
@@ -181,7 +230,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print(verdict)
-    return 0
+    return _export(verdict)
 
 
 if __name__ == "__main__":
