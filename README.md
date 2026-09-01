@@ -180,8 +180,8 @@ install with `aidetect --gui`.
 Given arguments, it stays a normal CLI:
 
 ```
-aidetect.exe report.pdf
-aidetect.exe suspicious.docx --detector features --model detector.pkl
+aidetect-lite.exe report.pdf
+aidetect-lite.exe suspicious.docx --detector features --model detector.pkl
 ```
 
 Two things to know before shipping it:
@@ -213,7 +213,7 @@ whatever the release was compiled against.
 git clone https://github.com/adamopoulosa1980/aidetect
 cd aidetect
 
-conda create -n aidetect python=3.12 -y      # or python -m venv .venv
+conda create -n aidetect python=3.10 -y      # 3.10-3.12 all work; 3.10 is what 1.6.0 was built and tested on
 conda activate aidetect
 
 # CUDA build - cu128 covers Turing through Blackwell (RTX 2080 Ti to 5090)
@@ -255,7 +255,7 @@ aidetect DOCUMENT --stylometry                      # indicators only, no model
 aidetect --gui                                      # graphical interface
 aidetect DOCUMENT --detector features --model m.pkl # CPU stylometric
 echo "some text" | aidetect                         # stdin
-echo "some text" | aidetect.exe -                   # stdin, frozen build
+echo "some text" | aidetect-lite.exe -              # stdin, frozen build
 python -m aidetect DOCUMENT                         # without the console script
 ```
 
