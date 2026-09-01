@@ -148,8 +148,9 @@ pytest                                     # 117 tests, CPU-only
 Builds a Windows `.exe` that runs on machines with **no Python installed**.
 
 ```powershell
-.\packaging\build.ps1          # full:  dist\aidetect\aidetect.exe
-.\packaging\build.ps1 -Lite    # lite:  dist\aidetect.exe
+.\packaging\build.ps1          # full:  dist\aidetect-full\aidetect-full.exe
+.\packaging\build.ps1 -Lite    # lite:  dist\aidetect-lite.exe
+.\packaging\build.ps1 -Both    # both, lite first
 ```
 
 | | Full (default) | Lite (`-Lite`) |
@@ -219,13 +220,13 @@ conda activate aidetect
 pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
 pip install -e ".[gpu,build]"
 
-.\packaging\build.ps1                    # -> dist\aidetect\aidetect.exe
+.\packaging\build.ps1                    # -> dist\aidetect-full\aidetect-full.exe
 ```
 
 Roughly 7 minutes and 4.4 GB of output. Check it picked up your GPU:
 
 ```powershell
-.\dist\aidetect\aidetect.exe --gui       # grey line should read "GPU ready: ..."
+.\dist\aidetect-full\aidetect-full.exe --gui   # grey line should read "GPU ready: ..."
 ```
 
 If it says no CUDA GPU on a machine that has one, the NVIDIA driver is usually

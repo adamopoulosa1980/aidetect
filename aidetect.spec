@@ -17,7 +17,8 @@ Two flavours, selected with the AIDETECT_LITE environment variable:
 Override the layout explicitly with AIDETECT_ONEFILE=1 or =0.
 
 Build:  pyinstaller --clean --noconfirm aidetect.spec
-Output: dist/aidetect.exe (lite) or dist/aidetect/aidetect.exe (full)
+Output: dist/aidetect-lite.exe (lite) or
+        dist/aidetect-full/aidetect-full.exe (full)
 """
 
 import os
@@ -35,6 +36,10 @@ def _flag(name, default=False):
 LITE = _flag("AIDETECT_LITE")
 ONEFILE = _flag("AIDETECT_ONEFILE", default=LITE)
 
+# Each flavour gets its own name so the two builds are told apart on sight and
+# can sit in dist/ side by side.
+NAME = "aidetect-lite" if LITE else "aidetect-full"
+
 # python-docx reads its bundled default.docx at import time; without this the
 # frozen app raises PackageNotFoundError on the first .docx it is given.
 datas = list(collect_data_files("docx"))
@@ -43,6 +48,10 @@ binaries = []
 # scikit-learn's Cython extensions are reached indirectly and are easy for the
 # static analysis to miss.
 hiddenimports = [
+    # scipy.stats._sobol is a Cython module, so the static analysis cannot see
+    # that it imports importlib.resources at init. Without this the frozen app
+    # dies on the first sklearn import with ModuleNotFoundError.
+    "importlib.resources",
     "sklearn.ensemble._hist_gradient_boosting._gradient_boosting",
     "sklearn.utils._typedefs",
     "sklearn.utils._heap",
@@ -106,7 +115,7 @@ if ONEFILE:
         a.binaries,
         a.datas,
         [],
-        name="aidetect",
+        name=NAME,
         debug=False,
         bootloader_ignore_signals=False,
         strip=False,
@@ -124,7 +133,7 @@ else:
         a.scripts,
         [],
         exclude_binaries=True,
-        name="aidetect",
+        name=NAME,
         debug=False,
         bootloader_ignore_signals=False,
         strip=False,
@@ -142,5 +151,5 @@ else:
         a.datas,
         strip=False,
         upx=False,
-        name="aidetect",
+        name=NAME,
     )

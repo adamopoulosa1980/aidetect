@@ -5,6 +5,54 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-09-01
+
+### Changed
+
+- **The two build flavours now have distinct names** — `dist\aidetect-lite.exe`
+  and `dist\aidetect-full\aidetect-full.exe`. Both were previously called
+  `aidetect`, which meant they could not sit in `dist\` together and a
+  downloaded binary did not say which flavour it was. **Breaking** for anything
+  scripting the old paths.
+
+### Added
+
+- **`-Both`** on `packaging\build.ps1` — builds lite, then full, in one run.
+  Lite goes first on purpose: a broken spec then surfaces in a minute rather
+  than after the multi-GB full build. That ordering is what caught the
+  `importlib.resources` crash below.
+- **`-Python`** on `packaging\build.ps1` — builds with a named interpreter, so
+  the build can target a specific conda env instead of whatever `python`
+  happens to resolve to on PATH.
+
+### Fixed
+
+- **The frozen executable died on startup** with `ModuleNotFoundError: No module
+  named 'importlib.resources'`, on every command including `--help`.
+  `scipy.stats._sobol` is a Cython module, so PyInstaller's static analysis
+  cannot see that it imports `importlib.resources`, and the chain
+  `sklearn` -> `scipy.stats` -> `qmc` -> `_sobol` runs on any invocation. Added
+  as a hidden import. Observed against scipy 1.15.3 on the lite build; the same
+  import chain is present in the full build.
+
+### Verified on GPU hardware
+
+Previous releases carried the note that the GPU path "has not been executed on
+NVIDIA hardware - the build machine has none". That is no longer true for
+device selection, and this release was built and smoke-tested on two RTX 3090s:
+
+- Driver 610.62 (CUDA UMD 13.3), torch 2.11.0+cu128. `cuda.is_available()` is
+  True and both devices enumerate at `sm_86`, which is in the compiled kernel
+  list, so the GPUs are covered directly rather than through PTX JIT.
+- The full build bundles the CUDA runtime - cuBLAS, cuDNN 9, cudart 12,
+  nvrtc 12.8 - at 100 DLLs and 4.0 GB of the 4.4 GB total.
+- Both executables pass `--help` and produce real `--stylometry` output.
+
+**Binoculars end to end on GPU is still unexercised.** That needs the Falcon 7B
+pair downloaded, which this build did not do, so the detector itself remains
+untested on NVIDIA hardware even though the device it would select is now known
+good.
+
 ## [1.5.0] - 2026-09-01
 
 ### Added
