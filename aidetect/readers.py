@@ -133,6 +133,67 @@ def read_pdf(path: str | Path) -> str:
     return "\n".join(parts)
 
 
+def pdf_page_spans(path: str | Path) -> list[tuple[int, int, int]]:
+    """Where each PDF page falls in the extracted word stream.
+
+    Returns ``(page_number, start_word, end_word)`` per page that contributed
+    text, so a scored section can be reported as "page 25" rather than
+    "section 412 of 623". Page numbers are the real ones from the file, not a
+    running count: blank and image-only pages contribute nothing to the text
+    but still consume a number, and reporting the wrong one is worse than
+    reporting none.
+
+    Word indices are used as the coordinate because they survive normalisation
+    -- it only ever rewrites whitespace -- so they mean the same thing in the
+    extracted text, the canonical form, and the chunker.
+
+    Returns [] where the mapping cannot be trusted, including for a PDF whose
+    page texts do not reassemble into what ``load_text`` returns.
+    """
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        return []
+
+    try:
+        reader = PdfReader(str(path))
+    except Exception:
+        return []
+
+    spans: list[tuple[int, int, int]] = []
+    cursor = 0
+    for number, page in enumerate(reader.pages, 1):
+        text = (page.extract_text() or "").strip()
+        if not text:
+            continue
+        count = len(normalise_text(text).split())
+        if count == 0:
+            continue
+        spans.append((number, cursor, cursor + count))
+        cursor += count
+
+    # The map is only worth having if it agrees with the text actually scored.
+    # A silent disagreement would point people at the wrong page, so drop it.
+    try:
+        if cursor != len(load_text(path).split()):
+            return []
+    except Exception:
+        return []
+    return spans
+
+
+def page_spans(path: str | Path) -> list[tuple[int, int, int]]:
+    """Page spans where the format has real pages, otherwise [].
+
+    Only PDF carries them. A .docx has no fixed pagination -- Word repaginates
+    on the fly for the current printer and font substitution -- so any page
+    number derived from it would be a guess presented as a fact.
+    """
+    if Path(path).suffix.lower() == ".pdf":
+        return pdf_page_spans(path)
+    return []
+
+
 def load_text(path: str | Path) -> str:
     """Load text from a file, dispatching on extension.
 

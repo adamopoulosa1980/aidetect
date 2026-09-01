@@ -560,7 +560,7 @@ class App(ttk.Frame):
         }
         threading.Thread(
             target=self._work,
-            args=(content, kwargs, warning, self.sections_var.get()),
+            args=(content, kwargs, warning, self.sections_var.get(), self._source_map(content)),
             daemon=True,
         ).start()
 
@@ -570,14 +570,36 @@ class App(ttk.Frame):
         except Exception:  # a hardware probe must never take the window down
             pass
 
-    def _work(self, content: str, kwargs: dict, warning: str, sectioned: bool) -> None:
+    def _source_map(self, content: str):
+        """Page and length coordinates for the loaded file, where it has them.
+
+        Pasted text has no source document to point back into, so it gets word
+        offsets and a percentage but no page numbers.
+        """
+        from .readers import page_spans
+        from .scoring import SourceMap
+
+        path = self.path_var.get()
+        pages = []
+        if path:
+            try:
+                pages = page_spans(path)
+            except Exception:  # a missing map must not stop the analysis
+                pages = []
+        return SourceMap(total_words=len(content.split()), pages=pages, source=path or None)
+
+    def _work(
+        self, content: str, kwargs: dict, warning: str, sectioned: bool, source_map=None
+    ) -> None:
         try:
             if kwargs.get("detector") == "stylometry":
                 from .scoring import describe_document
 
-                verdict = describe_document(content)
+                verdict = describe_document(content, source_map=source_map)
             else:
                 scorer = score_document if sectioned else score_text
+                if sectioned:
+                    kwargs = {**kwargs, "source_map": source_map}
                 verdict = scorer(content, **kwargs)
             self._results.put(("ok", (verdict.headline, warning + str(verdict), verdict)))
         except DetectorUnavailable as e:

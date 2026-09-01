@@ -248,6 +248,29 @@ def describe_device() -> str:
 # --------------------------------------------------------------------------
 
 
+@dataclass
+class SourceMap:
+    """Where the scored word stream sits in the document it came from.
+
+    Sections are chunks of a flattened word stream, so "section 412 of 623"
+    says nothing about where to look. This carries the coordinates needed to
+    answer that: how long the document is, and where its pages start.
+    """
+
+    total_words: int
+    pages: list[tuple[int, int, int]] = field(default_factory=list)
+    source: str | None = None
+
+    def page_range(self, start_word: int, end_word: int) -> tuple[int, int] | None:
+        """First and last page a word range touches, or None if unmapped."""
+        hits = [
+            number
+            for number, first, last in self.pages
+            if first < end_word and last > start_word
+        ]
+        return (hits[0], hits[-1]) if hits else None
+
+
 def _quote(text: str) -> list[str]:
     """Section text as blockquote lines, with blank lines kept quoted.
 
@@ -270,6 +293,35 @@ class Section:
     score: float
     is_ai: bool
     style: object | None = None  # features.StyleNote, kept loose to avoid a cycle
+    start_word: int = 0
+    end_word: int = 0
+
+    @property
+    def anchor(self) -> str:
+        """A verbatim phrase to search the original document for.
+
+        Whole words only. ``preview`` truncates mid-word for display, which
+        makes it useless in a find box -- this is the string you actually paste
+        into Ctrl+F, so it has to appear in the document exactly as written.
+        """
+        words = self.text.split()[:12]
+        return " ".join(words)
+
+    def locate(self, smap: "SourceMap | None") -> str:
+        """Human-readable position: page where known, always words and percent."""
+        if self.end_word <= self.start_word:
+            return ""
+        parts = []
+        if smap is not None and smap.pages:
+            span = smap.page_range(self.start_word, self.end_word)
+            if span:
+                first, last = span
+                parts.append(f"page {first}" if first == last else f"pages {first}-{last}")
+        parts.append(f"words {self.start_word + 1:,}-{self.end_word:,}")
+        if smap is not None and smap.total_words:
+            middle = (self.start_word + self.end_word) / 2
+            parts.append(f"{middle / smap.total_words * 100:.0f}% in")
+        return " | ".join(parts)
 
     @property
     def notes(self) -> list[str]:
@@ -287,6 +339,7 @@ class DocumentVerdict:
     threshold: float
     sections: list[Section]
     device: str | None = None
+    source_map: SourceMap | None = None
 
     @property
     def flagged(self) -> list[Section]:
@@ -351,6 +404,10 @@ class DocumentVerdict:
         if source:
             lines.append(f"| Source | `{source}` |")
         lines.append(f"| Sections | {total} |")
+        if self.source_map is not None:
+            lines.append(f"| Document length | {self.source_map.total_words:,} words |")
+            if self.source_map.pages:
+                lines.append(f"| Pages | {len(self.source_map.pages)} |")
         if not stylometry:
             lines.append(f"| Threshold | {self.threshold:.4f} |")
             lines.append(f"| Mean score | {self.mean_score:.4f} |")
@@ -396,6 +453,16 @@ class DocumentVerdict:
             if not stylometry:
                 title += f" -- score {section.score:.4f}"
             lines += [title, ""]
+            where = section.locate(self.source_map)
+            if where:
+                lines += [f"**Where:** {where}", ""]
+            if section.anchor:
+                lines += [
+                    "**Find it** by searching the document for:",
+                    "",
+                    f"`{section.anchor}`",
+                    "",
+                ]
             lines += [f"> {line}" for line in _quote(section.text)]
             lines.append("")
             if section.style is not None:
@@ -404,13 +471,20 @@ class DocumentVerdict:
             if section.notes:
                 lines.append("")
 
-        lines += ["## All sections", "", "| # | Score | Flagged | Opening |", "|---:|---:|:---:|---|"]
+        located = any(s.locate(self.source_map) for s in self.sections)
+        header = "| # | Score | Flagged | Where | Opening |" if located else (
+            "| # | Score | Flagged | Opening |"
+        )
+        rule = "|---:|---:|:---:|---|---|" if located else "|---:|---:|:---:|---|"
+        lines += ["## All sections", "", header, rule]
         for section in self.sections:
             score = "-" if stylometry else f"{section.score:.4f}"
             mark = "**yes**" if section.is_ai and not stylometry else ""
-            lines.append(
-                f"| {section.index + 1} | {score} | {mark} | {_cell(section.preview)} |"
-            )
+            cells = [str(section.index + 1), score, mark]
+            if located:
+                cells.append(_cell(section.locate(self.source_map)))
+            cells.append(_cell(section.preview))
+            lines.append("| " + " | ".join(cells) + " |")
         lines.append("")
 
         if self.detector == "binoculars":
@@ -449,6 +523,9 @@ class DocumentVerdict:
         for section in self.sections:
             mark = "FLAG" if section.is_ai else "    "
             rows.append(f"  [{section.index + 1:>2}] {section.score:.4f} {mark}  {section.preview}")
+            where = section.locate(self.source_map)
+            if where:
+                rows.append(f"       at {where}")
             if section.style is not None:
                 rows.append(f"       {section.style}")
             # Style notes are actionable even where the score is fine, so they
@@ -463,16 +540,22 @@ def score_document(
     *,
     chunk_words: int = 300,
     overlap: int = 50,
+    source_map: "SourceMap | None" = None,
     **kwargs,
 ) -> DocumentVerdict:
     """Score a document section by section, covering all of it.
 
     ``chunk_words`` defaults to 300 so each chunk stays inside the 512-token
     window with room to spare.
+
+    ``source_map`` carries page boundaries where the format has them, so a
+    flagged section can be reported as a place in the document rather than an
+    index into a list.
     """
-    from .ensemble import chunk_text
+    from .ensemble import chunk_spans, chunk_text
 
     chunks = chunk_text(text, chunk_words=chunk_words, overlap=overlap)
+    spans = chunk_spans(text, chunk_words=chunk_words, overlap=overlap)
     sections: list[Section] = []
     threshold = 0.0
     device = None
@@ -483,15 +566,28 @@ def score_document(
         verdict = score_text(chunk, detector, **kwargs)
         threshold = verdict.threshold
         device = verdict.device
+        start, end = spans[index]
         sections.append(
-            Section(index, chunk, verdict.score, verdict.is_ai, describe_style(chunk))
+            Section(
+                index,
+                chunk,
+                verdict.score,
+                verdict.is_ai,
+                describe_style(chunk),
+                start_word=start,
+                end_word=end,
+            )
         )
 
-    return DocumentVerdict(detector, threshold, sections, device)
+    return DocumentVerdict(detector, threshold, sections, device, source_map)
 
 
 def describe_document(
-    text: str, *, chunk_words: int = 300, overlap: int = 50
+    text: str,
+    *,
+    chunk_words: int = 300,
+    overlap: int = 50,
+    source_map: "SourceMap | None" = None,
 ) -> DocumentVerdict:
     """Stylometric indicators only, section by section, with no detector at all.
 
@@ -504,11 +600,21 @@ def describe_document(
     ``is_ai`` is always False. Nothing here judges authorship, and a field that
     said otherwise would invite exactly the reading this avoids.
     """
-    from .ensemble import chunk_text
+    from .ensemble import chunk_spans, chunk_text
     from .features import describe_style
 
+    chunks = chunk_text(text, chunk_words=chunk_words, overlap=overlap)
+    spans = chunk_spans(text, chunk_words=chunk_words, overlap=overlap)
     sections = [
-        Section(index, chunk, 0.0, False, describe_style(chunk))
-        for index, chunk in enumerate(chunk_text(text, chunk_words=chunk_words, overlap=overlap))
+        Section(
+            index,
+            chunk,
+            0.0,
+            False,
+            describe_style(chunk),
+            start_word=spans[index][0],
+            end_word=spans[index][1],
+        )
+        for index, chunk in enumerate(chunks)
     ]
-    return DocumentVerdict("stylometry", 0.0, sections)
+    return DocumentVerdict("stylometry", 0.0, sections, None, source_map)

@@ -298,7 +298,7 @@ separate from the flat text that gets scored.
 
 **Two different Markdown outputs, easily confused.** `--save-md` converts the *source document* to Markdown. `--export-md` writes the *analysis* — the per-section scores, which passages were flagged and why — to `DOCUMENT.analysis.md`. The GUI calls them "Save as .md" and "Export analysis".
 
-The report records which direction of the threshold means AI, because a file outlives the session that would have explained it. Flagged sections appear in full; the rest are one row each, so a 600-section document stays readable. `--export-md` implies `--sections`.
+The report records which direction of the threshold means AI, because a file outlives the session that would have explained it. Every section also says **where it is** — `at pages 3-4 | words 751-1,050 | 47% in` — with real page numbers for PDFs, and the report carries a verbatim phrase to paste into a find box. A `.docx` gets word offsets and a percentage but no page number: Word repaginates on the fly, so any page number derived from it would be a guess presented as a fact. Flagged sections appear in full; the rest are one row each, so a 600-section document stays readable. `--export-md` implies `--sections`.
 
 
 ### Operating modes and what actually gets scored

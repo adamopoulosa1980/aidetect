@@ -5,6 +5,49 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-09-01
+
+### Added
+
+- **Sections now say where they are in the document.** "Section 412 of 623" is
+  not something you can act on -- finding that passage in a 150,000-word file
+  meant reading until you recognised it. Every section now reports:
+
+  ```
+  [ 4] 0.8871 FLAG  the establishment of clear protocols ensures...
+       at pages 3-4 | words 751-1,050 | 47% in
+  ```
+
+  and the Markdown report adds a verbatim **Find it** string to paste into a
+  find box, whole words only. `preview` truncates mid-word for display, which
+  makes it useless in Ctrl+F; the anchor is guaranteed to appear in the document
+  exactly as written, and a test asserts that for every section.
+
+- **Real page numbers for PDFs.** `readers.page_spans()` records where each page
+  falls in the extracted word stream. They are the file's own page numbers, not
+  a running count: blank and image-only pages contribute no text but still
+  consume a number, and pointing at the wrong page confidently is worse than not
+  pointing at all.
+
+  **The map is discarded rather than guessed at.** If the per-page texts do not
+  reassemble into what `load_text()` returns, `page_spans()` returns nothing and
+  sections fall back to word offsets and a percentage. `.docx` gets no page
+  numbers at all -- Word repaginates on the fly for the current printer and font
+  substitution, so any number derived from it would be a guess presented as a
+  fact.
+
+- **`SourceMap`** carries the document's length and page boundaries, and
+  `chunk_spans()` sits beside `chunk_text()` driven by the same arithmetic, so
+  the offsets cannot drift from the chunks they describe. A test asserts every
+  span resolves to exactly the words of its chunk.
+
+### Verified
+
+The PDF page map is checked against a real PDF built inside the test, whose
+words state which page they are on, rather than against a mock. Every mapped
+range resolves to exactly the words on that page, spans start at zero, meet
+end-to-end with no gap or overlap, and finish at the last word of the document.
+
 ## [1.8.0] - 2026-09-01
 
 ### Added

@@ -55,6 +55,23 @@ class ScoreEnsemble:
         return ens
 
 
+def chunk_spans(text: str, chunk_words: int = 300, overlap: int = 50) -> list[tuple[int, int]]:
+    """The ``(start_word, end_word)`` of each chunk ``chunk_text`` would return.
+
+    Kept beside chunk_text and driven by the same arithmetic, because a section
+    reported at the wrong offset sends someone to the wrong page -- which is
+    worse than giving them no offset at all.
+    """
+    words = text.split()
+    if len(words) <= chunk_words:
+        return [(0, len(words))]
+    step = chunk_words - overlap
+    return [
+        (start, min(start + chunk_words, len(words)))
+        for start in range(0, len(words) - overlap, step)
+    ]
+
+
 def chunk_text(text: str, chunk_words: int = 300, overlap: int = 50) -> list[str]:
     """Split long text into overlapping word chunks."""
     words = text.split()

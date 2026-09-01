@@ -56,4 +56,4 @@ __all__ = [
     "Section",
     "DetectorUnavailable",
 ]
-__version__ = "1.8.0"
+__version__ = "1.9.0"

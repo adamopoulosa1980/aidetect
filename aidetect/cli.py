@@ -180,6 +180,19 @@ def main(argv: list[str] | None = None) -> int:
             print("aidetect: no text on stdin", file=sys.stderr)
             return 1
 
+    # Built from the file, so a flagged section can be reported as a place in
+    # the document rather than an index into a list.
+    source_map = None
+    if args.file and args.file != "-":
+        from .readers import page_spans
+        from .scoring import SourceMap
+
+        source_map = SourceMap(
+            total_words=len(text.split()),
+            pages=page_spans(args.file),
+            source=args.file,
+        )
+
     words = len(text.split())
     if words < MIN_WORDS:
         print(
@@ -210,15 +223,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.stylometry:
         from .scoring import describe_document
 
-        verdict = describe_document(text)
+        verdict = describe_document(text, source_map=source_map)
         print(verdict)
         return _export(verdict)
 
     scorer = score_document if args.sections else score_text
+    extra = {"source_map": source_map} if args.sections else {}
     try:
         verdict = scorer(
             text,
             args.detector,
+            **extra,
             model=args.model,
             observer=args.observer,
             performer=args.performer,
