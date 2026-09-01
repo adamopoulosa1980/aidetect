@@ -407,3 +407,12 @@ The limitation most worth reading before relying on any of this:
 > **GPT detectors are biased against non-native English writers.**
 > *Patterns* 4(7), 2023. [arXiv:2304.02819](https://arxiv.org/abs/2304.02819)
 
+
+## Licence
+
+BSD 3-Clause — see [LICENSE](LICENSE). The same licence as the Binoculars
+reference implementation this project's zero-shot detector is checked against,
+so the whole lineage stays under one set of terms.
+
+The Falcon models are downloaded from Hugging Face under their own licences and
+are not covered by this one.
