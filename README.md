@@ -80,7 +80,7 @@ it. Calibrate on your own writing before reading anything into a verdict.
 
 **1. Binoculars (zero-shot, GPU)** — `aidetect/binoculars.py`
 
-No training data needed. Scores text with a base/instruct model pair; AI text scores *low* (perplexity/cross-perplexity ratio). The Falcon-7B pair fits in fp16/bf16 on a single 24GB card. A Qwen2.5-7B pair also works and is faster on newer hardware.
+No training data needed. Scores text with a base/instruct model pair; AI text scores *low* (perplexity/cross-perplexity ratio). **Both models are resident at once**, so the Falcon-7B pair needs roughly 28GB in bf16 — more than a single 24GB card holds. Two GPUs get one model each automatically; on one card use a smaller pair (`--pair qwen2.5-1.5b`) or `device="auto"` to shard both across whatever GPUs are present. A Qwen2.5-7B pair also works and is faster on newer hardware.
 
 ```python
 from aidetect.binoculars import Binoculars

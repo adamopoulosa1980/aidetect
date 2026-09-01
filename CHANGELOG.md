@@ -5,6 +5,53 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-09-01
+
+### Fixed
+
+- **Binoculars ran out of memory on multi-GPU machines, using only one card.**
+  `pick_device()` returned the bare string `"cuda"`, which torch resolves to
+  device 0, and both the observer and the performer were loaded with it. The
+  pair therefore landed on the same GPU while every other card sat idle. On
+  2x24GB the failure was:
+
+  ```
+  OutOfMemoryError: CUDA out of memory. Tried to allocate 12.06 GiB.
+  GPU 0 has a total capacity of 24.00 GiB of which 9.29 GiB is free.
+  ```
+
+  48GB of VRAM was present and 24GB of it was unreachable. The two models now
+  get one card each, which is what makes the falcon-7b pair fit on consumer
+  hardware at all. Measured on 2x RTX 3090: 12.9 GiB on each card, 27s to load,
+  0.9s to score.
+
+- **The documented memory requirement was wrong.** Both the README and the
+  module docstring said the Falcon-7B pair "fits in fp16/bf16 on a single 24GB
+  card". Binoculars holds *both* models resident, which is roughly 28GB in
+  bf16, so it never fit. Corrected in both places.
+
+### Added
+
+- **`device="auto"`** shards each model across every visible GPU via accelerate,
+  for a pair too large to fit one card each. Slower than one-model-per-card,
+  because every forward pass then crosses devices, so it is opt-in.
+- **`pick_devices()`** returns the `(observer, performer)` placement, replacing
+  the single-device `pick_device()` for model loading. `pick_device()` is
+  unchanged and still used for reporting.
+- **`InsufficientVRAM`** replaces a raw CUDA OOM traceback with the numbers that
+  matter -- what each visible GPU is and holds, that two models must be resident
+  at once, and the ways out: a smaller pair (`--pair qwen2.5-1.5b`), a second
+  GPU, `device="auto"`, or `--detector features` / `--stylometry`, which need no
+  GPU at all.
+
+### Verified
+
+Binoculars has now been run end to end on NVIDIA hardware for the first time --
+previous releases verified device *selection* only. On 2x RTX 3090 with
+falcon-7b + falcon-7b-instruct in bf16, a score is produced in 0.9s after a 27s
+load. Scores are bit-identical across all three placements (both models on one
+card, one per card, and sharded via `auto`), measured drift 0.00e+00.
+
 ## [1.6.0] - 2026-09-01
 
 ### Changed

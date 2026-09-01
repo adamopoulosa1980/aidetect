@@ -162,6 +162,49 @@ def test_pick_device_reports_cuda_when_present(monkeypatch):
     assert binoculars.pick_device() == "cuda"
 
 
+def test_pick_devices_puts_one_model_on_each_gpu(monkeypatch):
+    """Two 7B models do not fit on one 24GB card, so a second GPU must be used.
+
+    Returning a bare 'cuda' for both put the pair on device 0 and left a second
+    card idle, which is an out-of-memory error rather than a slow run.
+    """
+    torch = pytest.importorskip("torch")
+    binoculars = pytest.importorskip("aidetect.binoculars")
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
+    assert binoculars.pick_devices() == ("cuda:0", "cuda:1")
+
+
+def test_pick_devices_shares_one_gpu_when_that_is_all_there_is(monkeypatch):
+    torch = pytest.importorskip("torch")
+    binoculars = pytest.importorskip("aidetect.binoculars")
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
+    assert binoculars.pick_devices() == ("cuda:0", "cuda:0")
+
+
+def test_pick_devices_falls_back_to_cpu(monkeypatch):
+    torch = pytest.importorskip("torch")
+    binoculars = pytest.importorskip("aidetect.binoculars")
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    assert binoculars.pick_devices() == ("cpu", "cpu")
+
+
+def test_pick_devices_names_an_explicit_index_not_bare_cuda(monkeypatch):
+    """'cuda' means device 0 to torch, so a second card is only reachable by index."""
+    torch = pytest.importorskip("torch")
+    binoculars = pytest.importorskip("aidetect.binoculars")
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 4)
+    observer, performer = binoculars.pick_devices()
+    assert observer != performer
+    assert observer.startswith("cuda:") and performer.startswith("cuda:")
+
+
 def test_verdict_str_includes_device():
     v = Verdict("binoculars", 0.8, 0.9, is_ai=True, extra={"perplexity": 3.0}, device="cuda")
     assert "device=cuda" in str(v)

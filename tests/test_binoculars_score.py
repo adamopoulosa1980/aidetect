@@ -44,8 +44,11 @@ def _reference_score(obs_logits, perf_logits, input_ids, attn):
 class _StubModel:
     """Returns fixed logits, so the score maths can be checked without weights."""
 
-    def __init__(self, logits):
+    def __init__(self, logits, device="cpu"):
         self._logits = logits
+        # Real HF models carry .device, and score() reads it to place inputs --
+        # which is how the two models end up on separate GPUs.
+        self.device = torch.device(device)
 
     def __call__(self, input_ids=None, attention_mask=None):
         class _Out:
